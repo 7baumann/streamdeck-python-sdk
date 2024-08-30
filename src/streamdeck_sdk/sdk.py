@@ -71,7 +71,7 @@ class StreamDeck(Base):
         self.registration_dict: Optional[dict] = None
 
     @log_errors
-    def ws_on_message(
+    async def ws_on_message(
             self,
             message: str,
     ) -> None:
@@ -91,9 +91,9 @@ class StreamDeck(Base):
 
         self.route_event_in_plugin_handler(event_routing=event_routing, obj=obj)
         if event_routing.type is event_routings.EventRoutingObjTypes.ACTION:
-            self.route_action_event_in_action_handler(event_routing=event_routing, obj=obj)
+            await self.route_action_event_in_action_handler(event_routing=event_routing, obj=obj)
         elif event_routing.type is event_routings.EventRoutingObjTypes.PLUGIN:
-            self.route_plugin_event_in_action_handlers(event_routing=event_routing, obj=obj)
+            await self.route_plugin_event_in_action_handlers(event_routing=event_routing, obj=obj)
 
     @log_errors
     def route_event_in_plugin_handler(
@@ -109,7 +109,7 @@ class StreamDeck(Base):
         handler(obj=obj)
 
     @log_errors
-    def route_action_event_in_action_handler(
+    async def route_action_event_in_action_handler(
             self,
             event_routing: event_routings.EventRoutingObj,
             obj: pydantic.BaseModel,
@@ -130,10 +130,10 @@ class StreamDeck(Base):
         except AttributeError as err:
             logger.error(f"Handler missing: {str(err)}", exc_info=True)
             return
-        handler(obj=obj)
+        await handler(obj=obj)
 
     @log_errors
-    def route_plugin_event_in_action_handlers(
+    async def route_plugin_event_in_action_handlers(
             self,
             event_routing: event_routings.EventRoutingObj,
             obj: pydantic.BaseModel,
@@ -144,7 +144,7 @@ class StreamDeck(Base):
             except AttributeError as err:
                 logger.error(f"Handler missing: {str(err)}", exc_info=True)
                 return
-            handler(obj=obj)
+            await handler(obj=obj)
 
     @log_errors
     async def run(self) -> None:
@@ -198,7 +198,7 @@ class StreamDeck(Base):
                 self.__init_actions()
                 self.send(data=self.registration_dict)
                 async for message in ws:
-                    self.ws_on_message(message)
+                    await self.ws_on_message(message)
         except Exception as err:
             logger.error(f"{error=}")
         finally:
