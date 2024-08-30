@@ -71,22 +71,6 @@ class StreamDeck(Base):
         self.registration_dict: Optional[dict] = None
 
     @log_errors
-    def ws_on_open(
-            self
-    ) -> None:
-        logger.info("WS OPENED")
-        self.send(data=self.registration_dict)
-
-    @log_errors
-    def ws_on_close(
-            self,
-            close_status_code: int,
-            close_msg: str,
-    ) -> None:
-        logger.debug(f"{close_status_code=}; {close_msg=}")
-        logger.info(f"WS CLOSED")
-
-    @log_errors
     def ws_on_message(
             self,
             message: str,
@@ -110,13 +94,6 @@ class StreamDeck(Base):
             self.route_action_event_in_action_handler(event_routing=event_routing, obj=obj)
         elif event_routing.type is event_routings.EventRoutingObjTypes.PLUGIN:
             self.route_plugin_event_in_action_handlers(event_routing=event_routing, obj=obj)
-
-    @log_errors
-    def ws_on_error(
-            self,
-            error: str,
-    ) -> None:
-        logger.error(f"{error=}")
 
     @log_errors
     def route_event_in_plugin_handler(
@@ -194,7 +171,7 @@ class StreamDeck(Base):
 
         self.registration_dict = {"event": self.register_event, "uuid": self.plugin_uuid}
         logger.debug(f"{self.registration_dict=}")
-        await self.run_websocket_client()
+        await self.__run_websocket_client()
 
     def __init_actions(self) -> None:
         if self.actions_list is None:
@@ -213,16 +190,16 @@ class StreamDeck(Base):
             action.info = self.info
             self.actions[action_uuid] = action
 
-    async def run_websocket_client(self):
+    async def __run_websocket_client(self):
         try:
             async with client.connect('ws://localhost:' + str(self.port)) as ws:
-                pass
+                logger.info("WS OPENED")
                 self.ws = ws
                 self.__init_actions()
-                self.ws_on_open()
+                self.send(data=self.registration_dict)
                 async for message in ws:
                     self.ws_on_message(message)
         except Exception as err:
-            self.ws_on_error(str(err))
+            logger.error(f"{error=}")
         finally:
-            self.ws_on_close(-1, "websockets.asyncio.client has been closed.")
+            logger.info(f"WS CLOSED")
