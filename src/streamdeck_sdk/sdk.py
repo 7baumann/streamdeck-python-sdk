@@ -6,6 +6,8 @@ from typing import Optional, Callable, List, Dict
 
 import pydantic
 import websocket
+from websockets.asyncio import client
+import asyncio
 
 from . import event_routings
 from . import mixins
@@ -197,17 +199,9 @@ class StreamDeck(Base):
 
         self.registration_dict = {"event": self.register_event, "uuid": self.plugin_uuid}
         logger.debug(f"{self.registration_dict=}")
-        self.ws = websocket.WebSocketApp(
-            'ws://localhost:' + str(self.port),
-            on_message=self.ws_on_message,
-            on_error=self.ws_on_error,
-            on_close=self.ws_on_close,
-            on_open=self.ws_on_open,
-        )
-        self.__init_actions()
-        self.ws.run_forever()
+        self.run_websocket_client()
 
-    def __init_actions(self) -> None:
+    def init_actions(self) -> None:
         if self.actions_list is None:
             return
 
@@ -223,3 +217,47 @@ class StreamDeck(Base):
             action.plugin_uuid = self.plugin_uuid
             action.info = self.info
             self.actions[action_uuid] = action
+
+    def run_websocket_client(self):
+        # self.ws = websocket.WebSocketApp(
+        #     'ws://localhost:' + str(self.port),
+        #     on_message=self.ws_on_message,
+        #     on_error=self.ws_on_error,
+        #     on_close=self.ws_on_close,
+        #     on_open=self.ws_on_open,
+        # )
+        # self.ws.run_forever()
+        asyncio.run(run_websockets_client(self))
+
+
+async def run_websockets_client(streamdeck: StreamDeck):
+    try:
+        async with client.connect('ws://localhost:' + str(streamdeck.port)) as ws:
+            pass
+            old_ws = OldWebserverStub(ws, streamdeck)
+            streamdeck.ws = old_ws
+            streamdeck.init_actions()
+            streamdeck.ws_on_open(old_ws)
+            async for message in ws:
+                streamdeck.ws_on_message(old_ws, message)
+    except Exception as err:
+        streamdeck.ws_on_error(old_ws, str(err))
+    finally:
+        streamdeck.ws_on_close(old_ws, -1, "websockets.asyncio.client has been closed.")
+
+
+class OldWebserverStub(websocket.WebSocketApp):
+    def __init__(self, ws: client.ClientConnection, streamdeck: StreamDeck):
+        super().__init__("")
+        self.ws = ws
+        self.streamdeck = streamdeck
+
+    def send(self, data, opcode=websocket.ABNF.OPCODE_TEXT) -> None:
+        asyncio.create_task(send(self.ws, data, self.streamdeck, self))
+
+
+async def send(ws: client.ClientConnection, data, streamdeck: StreamDeck, old_ws: websocket.WebSocketApp):
+    try:
+        await ws.send(data)
+    except Exception as err:
+        streamdeck.ws_on_error(old_ws, str(err))
