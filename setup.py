@@ -8,7 +8,7 @@ README = "README.md"
 with open(REQUIREMENTS_FILE, "r") as f:
     requirements = f.read().splitlines()
 
-with open(README, "r") as file:
+with open(README, "r", encoding="utf8") as file:
     long_description = file.read()
 
 setuptools.setup(
