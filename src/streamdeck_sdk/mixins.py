@@ -13,7 +13,7 @@ class SendMixin:
     ws: client.ClientConnection
 
     @log_errors
-    def send(
+    async def send(
             self,
             data: Union[pydantic.BaseModel, dict, str]
     ) -> None:
@@ -21,7 +21,7 @@ class SendMixin:
             data = data.json(ensure_ascii=False)
         elif isinstance(data, dict):
             data = json.dumps(data, ensure_ascii=False)
-        asyncio.create_task(self.ws.send(data))
+        await self.ws.send(data)
 
 
 class BaseEventSendMixin(SendMixin):
@@ -31,36 +31,36 @@ class BaseEventSendMixin(SendMixin):
 class PluginEventsSendMixin(BaseEventSendMixin):
     plugin_uuid: str
 
-    def set_global_settings(self, payload: dict) -> None:
+    async def set_global_settings(self, payload: dict) -> None:
         message = events_sent_objs.SetGlobalSettings(
             context=self.plugin_uuid,
             payload=payload,
         )
-        self.send(message)
+        await self.send(message)
 
-    def get_global_settings(self) -> None:
+    async def get_global_settings(self) -> None:
         message = events_sent_objs.GetGlobalSettings(
             context=self.plugin_uuid,
         )
-        self.send(message)
+        await self.send(message)
 
-    def open_url(self, url: str) -> None:
+    async def open_url(self, url: str) -> None:
         message = events_sent_objs.OpenUrl(
             payload=events_sent_objs.OpenUrlPayload(
                 url=url,
             ),
         )
-        self.send(message)
+        await self.send(message)
 
-    def log_message(self, message: str) -> None:
+    async def log_message(self, message: str) -> None:
         message = events_sent_objs.LogMessage(
             payload=events_sent_objs.LogMessagePayload(
                 message=message,
             ),
         )
-        self.send(message)
+        await self.send(message)
 
-    def switch_to_profile(
+    async def switch_to_profile(
             self,
             device: str,
             profile: str,
@@ -72,11 +72,11 @@ class PluginEventsSendMixin(BaseEventSendMixin):
                 profile=profile,
             ),
         )
-        self.send(message)
+        await self.send(message)
 
 
 class ActionEventsSendMixin(BaseEventSendMixin):
-    def set_settings(
+    async def set_settings(
             self,
             context: str,
             payload: dict,
@@ -85,18 +85,18 @@ class ActionEventsSendMixin(BaseEventSendMixin):
             context=context,
             payload=payload,
         )
-        self.send(message)
+        await self.send(message)
 
-    def get_settings(
+    async def get_settings(
             self,
             context: str,
     ) -> None:
         message = events_sent_objs.GetSettings(
             context=context,
         )
-        self.send(message)
+        await self.send(message)
 
-    def set_title(
+    async def set_title(
             self,
             context: str,
             payload: events_sent_objs.SetTitlePayload,
@@ -105,9 +105,9 @@ class ActionEventsSendMixin(BaseEventSendMixin):
             context=context,
             payload=payload,
         )
-        self.send(message)
+        await self.send(message)
 
-    def set_image(
+    async def set_image(
             self,
             context: str,
             payload: events_sent_objs.SetImagePayload,
@@ -116,9 +116,9 @@ class ActionEventsSendMixin(BaseEventSendMixin):
             context=context,
             payload=payload,
         )
-        self.send(message)
+        await self.send(message)
 
-    def set_feedback(
+    async def set_feedback(
             self,
             context: str,
             payload: dict,
@@ -127,9 +127,9 @@ class ActionEventsSendMixin(BaseEventSendMixin):
             context=context,
             payload=payload,
         )
-        self.send(message)
+        await self.send(message)
 
-    def set_feedback_layout(
+    async def set_feedback_layout(
             self,
             context: str,
             layout: str,
@@ -140,27 +140,27 @@ class ActionEventsSendMixin(BaseEventSendMixin):
                 layout=layout
             ),
         )
-        self.send(message)
+        await self.send(message)
 
-    def show_alert(
+    async def show_alert(
             self,
             context: str,
     ) -> None:
         message = events_sent_objs.ShowAlert(
             context=context,
         )
-        self.send(message)
+        await self.send(message)
 
-    def show_ok(
+    async def show_ok(
             self,
             context: str,
     ) -> None:
         message = events_sent_objs.ShowOk(
             context=context,
         )
-        self.send(message)
+        await self.send(message)
 
-    def set_state(
+    async def set_state(
             self,
             context: str,
             state: int,
@@ -171,9 +171,9 @@ class ActionEventsSendMixin(BaseEventSendMixin):
                 state=state
             )
         )
-        self.send(message)
+        await self.send(message)
 
-    def send_to_property_inspector(
+    async def send_to_property_inspector(
             self,
             action: str,
             context: str,
@@ -184,7 +184,7 @@ class ActionEventsSendMixin(BaseEventSendMixin):
             context=context,
             payload=payload
         )
-        self.send(message)
+        await self.send(message)
 
 
 class BaseEventHandlerMixin:

@@ -196,7 +196,7 @@ class StreamDeck(Base):
                 logger.info("WS OPENED")
                 self.ws = ws
                 self.__init_actions()
-                self.send(data=self.registration_dict)
+                await self.send(data=self.registration_dict)
                 async for message in ws:
                     await self.ws_on_message(message)
         except Exception as err:
