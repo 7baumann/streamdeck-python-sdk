@@ -2,27 +2,26 @@ import json
 from typing import Union
 
 import pydantic
-import websocket
-from websocket import ABNF
+from websockets.asyncio import client
+import asyncio
 
 from .sd_objs import events_received_objs, events_sent_objs
 from .logger import log_errors
 
 
 class SendMixin:
-    ws: websocket.WebSocketApp
+    ws: client.ClientConnection
 
     @log_errors
     def send(
             self,
-            data: Union[pydantic.BaseModel, dict, str],
-            opcode=ABNF.OPCODE_TEXT,
+            data: Union[pydantic.BaseModel, dict, str]
     ) -> None:
         if isinstance(data, pydantic.BaseModel):
             data = data.json(ensure_ascii=False)
         elif isinstance(data, dict):
             data = json.dumps(data, ensure_ascii=False)
-        self.ws.send(data, opcode)
+        asyncio.create_task(self.ws.send(data))
 
 
 class BaseEventSendMixin(SendMixin):
