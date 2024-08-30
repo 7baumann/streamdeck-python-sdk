@@ -170,7 +170,7 @@ class StreamDeck(Base):
             handler(obj=obj)
 
     @log_errors
-    def run(self) -> None:
+    async def run(self) -> None:
         logger.debug(f"Plugin has been launched")
         parser = argparse.ArgumentParser(description='StreamDeck Plugin')
         parser.add_argument('-port', dest='port', type=int, help="Port", required=True)
@@ -194,9 +194,9 @@ class StreamDeck(Base):
 
         self.registration_dict = {"event": self.register_event, "uuid": self.plugin_uuid}
         logger.debug(f"{self.registration_dict=}")
-        self.run_websocket_client()
+        await self.run_websocket_client()
 
-    def init_actions(self) -> None:
+    def __init_actions(self) -> None:
         if self.actions_list is None:
             return
 
@@ -213,20 +213,16 @@ class StreamDeck(Base):
             action.info = self.info
             self.actions[action_uuid] = action
 
-    def run_websocket_client(self):
-        asyncio.run(run_websockets_client(self))
-
-
-async def run_websockets_client(streamdeck: StreamDeck):
-    try:
-        async with client.connect('ws://localhost:' + str(streamdeck.port)) as ws:
-            pass
-            streamdeck.ws = ws
-            streamdeck.init_actions()
-            streamdeck.ws_on_open()
-            async for message in ws:
-                streamdeck.ws_on_message(message)
-    except Exception as err:
-        streamdeck.ws_on_error(str(err))
-    finally:
-        streamdeck.ws_on_close(-1, "websockets.asyncio.client has been closed.")
+    async def run_websocket_client(self):
+        try:
+            async with client.connect('ws://localhost:' + str(self.port)) as ws:
+                pass
+                self.ws = ws
+                self.__init_actions()
+                self.ws_on_open()
+                async for message in ws:
+                    self.ws_on_message(message)
+        except Exception as err:
+            self.ws_on_error(str(err))
+        finally:
+            self.ws_on_close(-1, "websockets.asyncio.client has been closed.")
